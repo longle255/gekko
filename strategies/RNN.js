@@ -33,12 +33,13 @@ strat.init = function () {
   this.currentTrend = 'long';
   this.requiredHistory = 0;
   this.client.connect();
+  this.startAt = Date.now();
 };
 
 // What happens on every new candle?
 strat.update = function (candle) {
+  this.client.addTick(candle.close, Date.now() - this.startAt);
   console.log('adding tick', candle.close);
-  this.client.addTick(candle.close, candle.start.valueOf());
 };
 
 // For debugging purposes.
@@ -47,11 +48,12 @@ strat.log = function () {
 };
 
 strat.check = function () {
+  let now = Date.now();
   let decision = this.client.getPrediction();
-  console.log('Checking decision', decision);
   if (decision !== this.currentTrend && decision !== 'stable') {
     console.log('Decision:', decision, ' / currentTrend', this.currentTrend);
     this.currentTrend = decision;
+    this.advice(decision);
     this.client.takeAction(decision);
     return this.currentTrend;
   }
