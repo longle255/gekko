@@ -7,6 +7,10 @@ function RNNClient() {
   this.invoke = deasync(this.client.invoke.bind(this.client));
 }
 
+RNNClient.prototype.init = function (name) {
+  return this.invoke('init', name);
+};
+
 RNNClient.prototype.addTick = function (value, time) {
   return this.invoke('add_tick', value, time);
 };
@@ -33,12 +37,15 @@ strat.init = function () {
   this.currentTrend = 'long';
   this.requiredHistory = 0;
   this.client.connect();
+  this.client.init('Gekko');
   this.startAt = Date.now();
+  this.lastCandle = null;
 };
 
 // What happens on every new candle?
 strat.update = function (candle) {
   this.client.addTick(candle.close, Date.now() - this.startAt);
+  this.lastCandle = candle;
   console.log('adding tick', candle.close);
 };
 
@@ -51,12 +58,21 @@ strat.check = function () {
   let now = Date.now();
   let decision = this.client.getPrediction();
   if (decision !== this.currentTrend && decision !== 'stable') {
-    console.log('Decision:', decision, ' / currentTrend', this.currentTrend);
+    console.log(
+      'Time',
+      this.lastCandle.start.format(),
+      'Decision:',
+      decision,
+      ' / currentTrend',
+      this.currentTrend,
+      '/ Price',
+      this.lastCandle.close
+    );
     this.currentTrend = decision;
     this.advice(decision);
     this.client.takeAction(decision);
     return this.currentTrend;
-  }
+  } else this.advice();
 };
 
 module.exports = strat;
